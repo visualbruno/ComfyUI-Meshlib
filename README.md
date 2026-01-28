@@ -125,4 +125,19 @@
 | Meshlib - Add Noise | Add Gaussian noise to vertex positions |
 | Meshlib - Denoise | Remove noise using Mumford-Shah framework (preserves sharp edges) |
 
+---
 
+## ⚙️ Installation
+
+#### For a standard python environment:
+
+```bash
+python -m pip install -r ComfyUI/custom_nodes/ComfyUI-Meshlib/requirements.txt
+```
+
+---
+
+#### For ComfyUI Portable:
+
+```bash
+python_embeded\python.exe -m pip install -r ComfyUI\custom_nodes\ComfyUI-Meshlilb\requirements.txt
