@@ -36,7 +36,48 @@ class MeshlibLoadMesh:
         import meshlib.mrmeshpy as mrmeshpy
         
         resolved_path = resolve_input_path(file_path)
-        mesh = mrmeshpy.loadMesh(resolved_path)
+        
+        # Check if it's a scene format (GLB, GLTF) that requires scene loading
+        ext = Path(resolved_path).suffix.lower()
+        scene_formats = {'.glb', '.gltf'}
+        
+        if ext in scene_formats:
+            # Load as scene and extract mesh(es)
+            scene_result = mrmeshpy.loadSceneFromAnySupportedFormat(resolved_path)
+            
+            if scene_result is None:
+                raise ValueError(f"Failed to load scene file: {file_path}")
+            
+            # scene_result is a LoadedObjectT with an 'obj' attribute containing the root
+            root_obj = scene_result.obj
+            
+            if root_obj is None:
+                raise ValueError(f"No root object in scene file: {file_path}")
+            
+            # Helper function to recursively find meshes in the scene tree
+            def find_mesh_in_object(obj):
+                # Try to get mesh directly from this object
+                if hasattr(obj, 'mesh'):
+                    m = obj.mesh()
+                    if m is not None:
+                        return m
+                
+                # Try to iterate children if this is a parent object
+                if hasattr(obj, 'children'):
+                    for child in obj.children():
+                        m = find_mesh_in_object(child)
+                        if m is not None:
+                            return m
+                
+                return None
+            
+            mesh = find_mesh_in_object(root_obj)
+            
+            if mesh is None:
+                raise ValueError(f"No mesh found in scene file: {file_path}")
+        else:
+            # Standard mesh loading for non-scene formats
+            mesh = mrmeshpy.loadMesh(resolved_path)
         
         return (mesh,)
 

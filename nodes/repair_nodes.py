@@ -3,6 +3,9 @@ Repair Nodes for ComfyUI-Meshlib
 Mesh repair operations: fill holes, stitch holes, fix degeneracies, find self-intersections
 """
 
+from tqdm import tqdm
+from comfy.utils import ProgressBar
+
 
 class MeshlibFillHoles:
     """Fill all holes in a mesh"""
@@ -13,14 +16,6 @@ class MeshlibFillHoles:
             "required": {
                 "mesh": ("MESHLIB_MESH",),
             },
-            "optional": {
-                "max_hole_edges": ("INT", {
-                    "default": 0,
-                    "min": 0,
-                    "max": 10000,
-                    "tooltip": "Maximum number of edges in holes to fill (0 = fill all holes)"
-                }),
-            }
         }
     
     RETURN_TYPES = ("MESHLIB_MESH", "INT")
@@ -29,7 +24,7 @@ class MeshlibFillHoles:
     CATEGORY = "Meshlib/Repair"
     DESCRIPTION = "Fill all holes in a mesh using optimal triangulation."
 
-    def process(self, mesh, max_hole_edges=0):
+    def process(self, mesh):
         import meshlib.mrmeshpy as mrmeshpy
         
         mesh = mrmeshpy.copyMesh(mesh)
@@ -37,18 +32,20 @@ class MeshlibFillHoles:
         hole_edges = mesh.topology.findHoleRepresentiveEdges()
         holes_filled = 0
         
-        for e in hole_edges:
-            # Skip holes that are too large if max_hole_edges is set
-            if max_hole_edges > 0:
-                # Count edges in this hole
-                hole_loop = mesh.topology.trackLeftBoundaryLoop(e)
-                if len(hole_loop) > max_hole_edges:
-                    continue
+        nb_holes = len(hole_edges)
+        print(f"{nb_holes} holes found")
+        
+        if nb_holes>0:
+            progress_bar = tqdm(total=nb_holes,desc="Filling holes")
+            pbar = ProgressBar(nb_holes)
             
-            params = mrmeshpy.FillHoleParams()
-            params.metric = mrmeshpy.getUniversalMetric(mesh)
-            mrmeshpy.fillHole(mesh, e, params)
-            holes_filled += 1
+            for e in hole_edges:
+                params = mrmeshpy.FillHoleParams()
+                params.metric = mrmeshpy.getUniversalMetric(mesh)
+                mrmeshpy.fillHole(mesh, e, params)
+                holes_filled += 1
+                progress_bar.update(1)
+                pbar.update(1)
         
         return (mesh, holes_filled)
 
@@ -168,8 +165,9 @@ class MeshlibFindSelfIntersections:
         import meshlib.mrmeshpy as mrmeshpy
         
         # Find self-intersecting faces
+        # Returns a vector of FaceFace pairs
         intersecting_faces = mrmeshpy.findSelfCollidingTriangles(mesh)
-        count = intersecting_faces.count()
+        count = len(intersecting_faces)
         has_intersections = count > 0
         
         return (mesh, count, has_intersections)

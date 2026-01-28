@@ -56,11 +56,10 @@ def get_output_path(filename_prefix: str, file_format: str) -> str:
     import folder_paths
     from pathlib import Path
     
-    full_output_folder, filename, counter, subfolder, _ = \
-        folder_paths.get_save_image_path(filename_prefix, folder_paths.get_output_directory())
+    full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, folder_paths.get_output_directory())
     
     output_path = Path(full_output_folder) / f'{filename}_{counter:05}.{file_format}'
-    output_path.parent.mkdir(exist_ok=True, parents=True)
+    output_path.parent.mkdir(exist_ok=True, parents=True) 
     
     return str(output_path)
 
